@@ -372,11 +372,13 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     private fun parseCode(message: String): String {
-        val p = Pattern.compile("\\b\\d{" + resources.getString(R.string.otpLen) + "}\\b")
+        //val p = Pattern.compile("\\b\\d{" + resources.getString(R.string.otpLen) + "}\\b")
+        val p = Pattern.compile("([A-Z0-9]){" + resources.getString(R.string.otpLen) + "}")
         val m = p.matcher(message)
         var code = ""
         while (m.find()) {
-            code = m.group(0)
+            //code = m.group(0)
+            code = m.group()
         }
         return code
     }
