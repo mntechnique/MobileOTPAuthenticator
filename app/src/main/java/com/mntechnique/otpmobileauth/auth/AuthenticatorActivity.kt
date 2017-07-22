@@ -163,18 +163,13 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
 
     }
 
-    override fun onStart() {
-        super.onStart()
-        smsVerifyCatcher.onStart()
-    }
-
     override fun onStop() {
         super.onStop()
         smsVerifyCatcher.onStop()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
-
+        llProgress.visibility = View.GONE
         // The sign up activity returned that the user has successfully created an account
         if (requestCode == REQ_SIGNUP && resultCode == RESULT_OK) {
             finishLogin(data)
@@ -216,12 +211,17 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     fun signIn() {
+
+        //show progress
+        llProgress.visibility = View.VISIBLE
+
         val server = OTPMobileRESTAPI()
         server.getOTP(mobileInput!!.text.toString().replace(" ", ""),
                 serverUrl, getOTPEndpoint, object : OTPMobileServerCallback {
             override fun onSuccessString(result: String) {
                 Log.d("OTPSuccess", result)
-
+                //hide progress
+                llProgress.visibility = View.GONE
                 try {
                     val resultJSON = JSONObject(result)
                     val otpMessage = resultJSON.getString("message")
@@ -238,6 +238,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
             }
 
             override fun onErrorString(error: VolleyError) {
+                //show progress
+                llProgress.visibility = View.GONE
                 Toast.makeText(baseContext, "Something went wrong, please check mobile number", Toast.LENGTH_LONG).show()
 
                 mobileInput!!.isEnabled = true
@@ -253,6 +255,9 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         val server = OTPMobileRESTAPI()
 
         val accountType = intent.getStringExtra(ARG_ACCOUNT_TYPE)
+
+        //show progress
+        llProgress.visibility = View.VISIBLE
 
         server.authOtp(otpInput!!.text.toString().replace(" ", ""),
                 mobileInput!!.text.toString(),
@@ -304,6 +309,10 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                             }
 
                             override fun onPostExecute(intent: Intent) {
+
+                                //show progress
+                                llProgress.visibility = View.GONE
+
                                 if (intent.hasExtra(KEY_ERROR_MESSAGE)) {
                                     Toast.makeText(baseContext, intent.getStringExtra(KEY_ERROR_MESSAGE), Toast.LENGTH_SHORT).show()
                                 } else {
