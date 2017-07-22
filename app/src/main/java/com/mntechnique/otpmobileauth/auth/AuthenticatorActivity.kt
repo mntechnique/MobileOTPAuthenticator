@@ -26,12 +26,8 @@ import android.widget.*
 import com.mntechnique.otpmobileauth.R
 import com.mntechnique.otpmobileauth.server.OTPMobileRESTAPI
 import com.mntechnique.otpmobileauth.server.OTPMobileServerCallback
-import android.Manifest.permission.READ_CONTACTS
 import android.Manifest.permission.READ_SMS
 import android.os.Build
-
-
-
 
 /**
  * A login screen that offers login via mobile/otp.
@@ -64,12 +60,12 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     internal lateinit var authOTPEndpoint: String
     internal lateinit var openIDEndpoint: String
 
+    internal lateinit var llProgress: LinearLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_authenticator)
-
-        requestSMSReadPermission()
-
+        llProgress = findViewById<LinearLayout>(R.id.llProgress)
         smsVerifyCatcher = SmsVerifyCatcher(this, OnSmsCatchListener<String> { message ->
             val code = parseCode(message)//Parse verification code
             //then you can send verification code to server
@@ -122,10 +118,6 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         }
     }
 
-    fun requestSMSReadPermission(){
-
-    }
-
     private fun initOAuth20Service() : AccountGeneral{
         val accountGeneral = AccountGeneral(
                 resources.getString(R.string.oauth2Scope),
@@ -144,7 +136,6 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 .setAction("Close") { finish() }.show()
     }
 
-
     /**
      * Callback received when a permissions request has been completed.
      */
@@ -152,20 +143,21 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                                                    grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         // Manual coded
+
         when (requestCode) {
             REQUEST_READ_SMS -> {
-                // For Contacts during login
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // For SMS Read during login using OTP
+                if (grantResults.isNotEmpty() && grantResults.get(0) == PackageManager.PERMISSION_GRANTED) {
                     // Handle action of grant
                     smsVerifyCatcher.onStart()
                     // For receiving otp sms
                     smsVerifyCatcher.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
                     wireUpUI()
+
                 } else {
                     showPermissionSnackbarSMS()
                 }
-                return
             }
         }
 
@@ -194,10 +186,12 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     private fun wireUpUI() {
 
         if(!mayRequestSMS()){
-            return;
+            return
         }
 
         initOAuth20Service()
+
+        llProgress.visibility = View.GONE
 
         openIDEndpoint = resources.getString(R.string.openIDEndpoint)
         serverUrl = resources.getString(R.string.serverURL)
@@ -426,11 +420,12 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     internal fun mayRequestSMS(): Boolean {
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return true
         }
 
-        if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission(READ_SMS) == PackageManager.PERMISSION_GRANTED) {
             return true
         }
 
@@ -439,10 +434,12 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         } else {
             requestPermissions(arrayOf(READ_SMS), REQUEST_READ_SMS)
         }
+
         return false
     }
 
     fun showPermissionSnackbarSMS(){
+        llProgress.visibility = View.VISIBLE
         Snackbar.make(findViewById<ViewGroup>(android.R.id.content), "App needs Read SMS permission", Snackbar.LENGTH_INDEFINITE)
             .setAction("OK", object: View.OnClickListener {
                 override fun onClick(v: View) {
