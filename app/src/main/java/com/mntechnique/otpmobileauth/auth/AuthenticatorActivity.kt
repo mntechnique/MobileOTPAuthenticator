@@ -11,6 +11,7 @@ import android.os.AsyncTask
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 
 import com.android.volley.VolleyError
 import com.stfalcon.smsverifycatcher.OnSmsCatchListener
@@ -25,6 +26,8 @@ import android.widget.*
 import com.mntechnique.otpmobileauth.R
 import com.mntechnique.otpmobileauth.server.OTPMobileRESTAPI
 import com.mntechnique.otpmobileauth.server.OTPMobileServerCallback
+import android.Manifest.permission.READ_SMS
+import android.os.Build
 
 /**
  * A login screen that offers login via mobile/otp.
@@ -57,10 +60,12 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     internal lateinit var authOTPEndpoint: String
     internal lateinit var openIDEndpoint: String
 
+    internal lateinit var llProgress: LinearLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_authenticator)
-
+        llProgress = findViewById<LinearLayout>(R.id.llProgress)
         smsVerifyCatcher = SmsVerifyCatcher(this, OnSmsCatchListener<String> { message ->
             val code = parseCode(message)//Parse verification code
             //then you can send verification code to server
@@ -131,36 +136,31 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 .setAction("Close") { finish() }.show()
     }
 
-
     /**
      * Callback received when a permissions request has been completed.
      */
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
                                                    grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-
         // Manual coded
+
         when (requestCode) {
-            REQUEST_READ_CONTACTS -> {
-                // For Contacts during login
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            REQUEST_READ_SMS -> {
+                // For SMS Read during login using OTP
+                if (grantResults.isNotEmpty() && grantResults.get(0) == PackageManager.PERMISSION_GRANTED) {
                     // Handle action of grant
                     smsVerifyCatcher.onStart()
                     // For receiving otp sms
                     smsVerifyCatcher.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
                     wireUpUI()
+
+                } else {
+                    showPermissionSnackbarSMS()
                 }
-                return
             }
         }
 
-    }
-
-    override fun onStart() {
-        super.onStart()
-        smsVerifyCatcher.onStart()
     }
 
     override fun onStop() {
@@ -169,7 +169,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
-
+        llProgress.visibility = View.GONE
         // The sign up activity returned that the user has successfully created an account
         if (requestCode == REQ_SIGNUP && resultCode == RESULT_OK) {
             finishLogin(data)
@@ -180,7 +180,13 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
 
     private fun wireUpUI() {
 
+        if(!mayRequestSMS()){
+            return
+        }
+
         initOAuth20Service()
+
+        llProgress.visibility = View.GONE
 
         openIDEndpoint = resources.getString(R.string.openIDEndpoint)
         serverUrl = resources.getString(R.string.serverURL)
@@ -205,12 +211,17 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     fun signIn() {
+
+        //show progress
+        llProgress.visibility = View.VISIBLE
+
         val server = OTPMobileRESTAPI()
         server.getOTP(mobileInput!!.text.toString().replace(" ", ""),
                 serverUrl, getOTPEndpoint, object : OTPMobileServerCallback {
             override fun onSuccessString(result: String) {
                 Log.d("OTPSuccess", result)
-
+                //hide progress
+                llProgress.visibility = View.GONE
                 try {
                     val resultJSON = JSONObject(result)
                     val otpMessage = resultJSON.getString("message")
@@ -227,6 +238,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
             }
 
             override fun onErrorString(error: VolleyError) {
+                //show progress
+                llProgress.visibility = View.GONE
                 Toast.makeText(baseContext, "Something went wrong, please check mobile number", Toast.LENGTH_LONG).show()
 
                 mobileInput!!.isEnabled = true
@@ -242,6 +255,9 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         val server = OTPMobileRESTAPI()
 
         val accountType = intent.getStringExtra(ARG_ACCOUNT_TYPE)
+
+        //show progress
+        llProgress.visibility = View.VISIBLE
 
         server.authOtp(otpInput!!.text.toString().replace(" ", ""),
                 mobileInput!!.text.toString(),
@@ -293,6 +309,10 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                             }
 
                             override fun onPostExecute(intent: Intent) {
+
+                                //show progress
+                                llProgress.visibility = View.GONE
+
                                 if (intent.hasExtra(KEY_ERROR_MESSAGE)) {
                                     Toast.makeText(baseContext, intent.getStringExtra(KEY_ERROR_MESSAGE), Toast.LENGTH_SHORT).show()
                                 } else {
@@ -372,11 +392,13 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     private fun parseCode(message: String): String {
-        val p = Pattern.compile("\\b\\d{" + resources.getString(R.string.otpLen) + "}\\b")
+        //val p = Pattern.compile("\\b\\d{" + resources.getString(R.string.otpLen) + "}\\b")
+        val p = Pattern.compile("([A-Z0-9]){" + resources.getString(R.string.otpLen) + "}")
         val m = p.matcher(message)
         var code = ""
         while (m.find()) {
-            code = m.group(0)
+            //code = m.group(0)
+            code = m.group()
         }
         return code
     }
@@ -395,7 +417,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         /**
          * Id to identity READ_CONTACTS permission request.
          */
-        private val REQUEST_READ_CONTACTS = 0
+        private val REQUEST_READ_SMS = 0
     }
 
     internal fun accountExists():Boolean {
@@ -404,6 +426,37 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
             return true
         }
         return false
+    }
+
+    internal fun mayRequestSMS(): Boolean {
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true
+        }
+
+        if (checkSelfPermission(READ_SMS) == PackageManager.PERMISSION_GRANTED) {
+            return true
+        }
+
+        if (shouldShowRequestPermissionRationale(READ_SMS)) {
+            showPermissionSnackbarSMS()
+        } else {
+            requestPermissions(arrayOf(READ_SMS), REQUEST_READ_SMS)
+        }
+
+        return false
+    }
+
+    fun showPermissionSnackbarSMS(){
+        llProgress.visibility = View.VISIBLE
+        Snackbar.make(findViewById<ViewGroup>(android.R.id.content), "App needs Read SMS permission", Snackbar.LENGTH_INDEFINITE)
+            .setAction("OK", object: View.OnClickListener {
+                override fun onClick(v: View) {
+                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                        requestPermissions(arrayOf(READ_SMS), REQUEST_READ_SMS);
+                    }
+                }
+            }).show();
     }
 }
 
