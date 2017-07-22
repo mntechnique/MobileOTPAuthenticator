@@ -11,6 +11,7 @@ import android.os.AsyncTask
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 
 import com.android.volley.VolleyError
 import com.stfalcon.smsverifycatcher.OnSmsCatchListener
@@ -25,6 +26,12 @@ import android.widget.*
 import com.mntechnique.otpmobileauth.R
 import com.mntechnique.otpmobileauth.server.OTPMobileRESTAPI
 import com.mntechnique.otpmobileauth.server.OTPMobileServerCallback
+import android.Manifest.permission.READ_CONTACTS
+import android.Manifest.permission.READ_SMS
+import android.os.Build
+
+
+
 
 /**
  * A login screen that offers login via mobile/otp.
@@ -60,6 +67,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_authenticator)
+
+        requestSMSReadPermission()
 
         smsVerifyCatcher = SmsVerifyCatcher(this, OnSmsCatchListener<String> { message ->
             val code = parseCode(message)//Parse verification code
@@ -113,6 +122,10 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         }
     }
 
+    fun requestSMSReadPermission(){
+
+    }
+
     private fun initOAuth20Service() : AccountGeneral{
         val accountGeneral = AccountGeneral(
                 resources.getString(R.string.oauth2Scope),
@@ -138,11 +151,9 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
                                                    grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-
         // Manual coded
         when (requestCode) {
-            REQUEST_READ_CONTACTS -> {
+            REQUEST_READ_SMS -> {
                 // For Contacts during login
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Handle action of grant
@@ -151,6 +162,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                     smsVerifyCatcher.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
                     wireUpUI()
+                } else {
+                    showPermissionSnackbarSMS()
                 }
                 return
             }
@@ -179,6 +192,10 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     private fun wireUpUI() {
+
+        if(!mayRequestSMS()){
+            return;
+        }
 
         initOAuth20Service()
 
@@ -397,7 +414,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         /**
          * Id to identity READ_CONTACTS permission request.
          */
-        private val REQUEST_READ_CONTACTS = 0
+        private val REQUEST_READ_SMS = 0
     }
 
     internal fun accountExists():Boolean {
@@ -406,6 +423,34 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
             return true
         }
         return false
+    }
+
+    internal fun mayRequestSMS(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true
+        }
+
+        if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            return true
+        }
+
+        if (shouldShowRequestPermissionRationale(READ_SMS)) {
+            showPermissionSnackbarSMS()
+        } else {
+            requestPermissions(arrayOf(READ_SMS), REQUEST_READ_SMS)
+        }
+        return false
+    }
+
+    fun showPermissionSnackbarSMS(){
+        Snackbar.make(findViewById<ViewGroup>(android.R.id.content), "App needs Read SMS permission", Snackbar.LENGTH_INDEFINITE)
+            .setAction("OK", object: View.OnClickListener {
+                override fun onClick(v: View) {
+                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                        requestPermissions(arrayOf(READ_SMS), REQUEST_READ_SMS);
+                    }
+                }
+            }).show();
     }
 }
 
