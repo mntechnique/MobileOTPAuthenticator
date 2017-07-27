@@ -1,5 +1,6 @@
 package com.mntechnique.otpmobileauth.server
 
+import android.content.Context
 import com.android.volley.AuthFailureError
 import com.android.volley.Request
 import com.android.volley.Response
@@ -20,7 +21,8 @@ import java.util.HashMap
  * Created by gaurav on 27/5/17.
  */
 
-class OTPMobileRESTAPI {
+class OTPMobileRESTAPI (context: Context) {
+    internal var mCtx = context
 
     fun getOTP(mobileNo: String, serverUrl: String, getOTPEndpoint: String, callback: OTPMobileServerCallback) {
         val req = object : JsonObjectRequest(
@@ -41,7 +43,7 @@ class OTPMobileRESTAPI {
         }
 
         // add the request object to the queue to be executed
-        ApplicationController.instance?.addToRequestQueue(req)
+        ApplicationController(mCtx).addToRequestQueue(req)
 
     }
 
@@ -75,7 +77,7 @@ class OTPMobileRESTAPI {
         }
 
         // add the request object to the queue to be executed
-        ApplicationController.instance?.addToRequestQueue(req)
+        ApplicationController(mCtx).addToRequestQueue(req)
 
     }
 }
