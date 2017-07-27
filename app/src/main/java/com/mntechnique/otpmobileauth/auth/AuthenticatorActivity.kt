@@ -79,7 +79,6 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         //smsVerifyCatcher.setFilter("regexp");
 
         mAccountManager = AccountManager.get(baseContext)
-        Log.d("IntentExtras", intent.extras.toString())
 
         mAuthTokenType = intent.getStringExtra(ARG_AUTH_TYPE)
 
@@ -87,11 +86,11 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
             mAuthTokenType = AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS
         }
 
-        Log.d("Intent:ACCOUNT_NAME", intent.extras.toString())
         val accounts = mAccountManager.getAccountsByType(intent.getStringExtra(ARG_ACCOUNT_TYPE))
         allowMultipleAccounts = Integer.parseInt(resources.getString(R.string.allowMultipleAccounts))
         var signInAgain: Boolean? = true
         if (intent.hasExtra(ARG_ACCOUNT_NAME)) {
+            Log.d("IntentExtras", intent.extras.toString())
             for (account in accounts) {
                 if (account.name == intent.getStringExtra(ARG_ACCOUNT_NAME)) {
                     wireUpUI()
