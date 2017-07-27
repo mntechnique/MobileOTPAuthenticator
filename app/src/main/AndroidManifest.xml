@@ -21,7 +21,8 @@
         android:name="com.mntechnique.otpmobileauth.ApplicationController"
         android:theme="@style/AppTheme">
         <activity android:name="com.mntechnique.otpmobileauth.auth.AuthenticatorActivity"
-            android:exported="true" ></activity>
+            android:exported="true" android:screenOrientation="portrait">
+        </activity>
 
         <service android:name="com.mntechnique.otpmobileauth.auth.FrappeAuthenticatorService">
             <intent-filter>
