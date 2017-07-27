@@ -27,10 +27,12 @@ import org.json.JSONObject
 import java.io.UnsupportedEncodingException
 import java.util.HashMap
 
-class ApplicationController : Application() {
+class ApplicationController (context: Context) {
+    internal lateinit var mInstance: ApplicationController
+    internal var mCtx = context
 
     internal var bearerToken = JSONObject()
-    internal var accounts: Array<Account>? = null
+    internal lateinit var accounts: Array<Account>
 
     /**
      * Global request queue for Volley
@@ -38,10 +40,6 @@ class ApplicationController : Application() {
     private var mRequestQueue: RequestQueue? = null
     private var mSerialRequestQueue: RequestQueue? = null
 
-    override fun onCreate() {
-        super.onCreate()
-        instance = this
-    }
 
     /**
      * @return The Volley Request queue, the queue will be created if it is null
@@ -51,7 +49,7 @@ class ApplicationController : Application() {
     val requestQueue: RequestQueue?
         get() {
             if (mRequestQueue == null) {
-                mRequestQueue = Volley.newRequestQueue(getApplicationContext())
+                mRequestQueue = Volley.newRequestQueue(mCtx)
             }
 
             return mRequestQueue
@@ -60,7 +58,7 @@ class ApplicationController : Application() {
     val serialRequestQueue: RequestQueue?
         get() {
             if (mSerialRequestQueue == null) {
-                mSerialRequestQueue = prepareSerialRequestQueue(getApplicationContext())
+                mSerialRequestQueue = prepareSerialRequestQueue(mCtx)
                 mSerialRequestQueue!!.start()
             }
             return mSerialRequestQueue

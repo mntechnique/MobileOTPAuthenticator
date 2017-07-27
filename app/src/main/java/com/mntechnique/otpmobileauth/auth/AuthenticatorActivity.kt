@@ -215,7 +215,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         //show progress
         llProgress.visibility = View.VISIBLE
 
-        val server = OTPMobileRESTAPI()
+        val server = OTPMobileRESTAPI(baseContext)
         server.getOTP(mobileInput!!.text.toString().replace(" ", ""),
                 serverUrl, getOTPEndpoint, object : OTPMobileServerCallback {
             override fun onSuccessString(result: String) {
@@ -252,7 +252,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     fun authOtp() {
-        val server = OTPMobileRESTAPI()
+        val server = OTPMobileRESTAPI(baseContext)
 
         val accountType = intent.getStringExtra(ARG_ACCOUNT_TYPE)
 
