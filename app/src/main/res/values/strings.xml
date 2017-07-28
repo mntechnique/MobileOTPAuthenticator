@@ -16,4 +16,5 @@
     <string name="getOTPEndpoint">/api/method/mnt_mobile_otp.api.get_otp</string>
     <string name="authOTPEndpoint">/api/method/mnt_mobile_otp.api.authenticate_otp</string>
     <string name="otpLen">6</string>
+    <string name="please_add_account">Please add account</string>
 </resources>
