@@ -6,7 +6,7 @@ Add this library to any project to add Account Authenticator based on OAuth 2.0
 
 ### Add to jitpack to gradle/maven 
 
-https://jitpack.io/#mntechnique/OAuth2Authenticator
+https://jitpack.io/#mntechnique/MobileOTPAuthenticator
 
 ### Override string.xml with your details
 
