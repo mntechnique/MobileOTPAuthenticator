@@ -69,8 +69,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         smsVerifyCatcher = SmsVerifyCatcher(this, OnSmsCatchListener<String> { message ->
             val code = parseCode(message)//Parse verification code
             //then you can send verification code to server
-            otpInput?.setText(code)//set code in edit text
             otpInput?.isEnabled = true
+            otpInput?.setText(code)//set code in edit text
             authOtp()
         })
 
@@ -215,7 +215,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         llProgress.visibility = View.VISIBLE
 
         val server = OTPMobileRESTAPI(baseContext)
-        server.getOTP(mobileInput!!.text.toString().replace(" ", ""),
+        server.getOTP(mobileInput!!.text.toString().replace(" ", ""), resources.getString(R.string.clientId),
                 serverUrl, getOTPEndpoint, object : OTPMobileServerCallback {
             override fun onSuccessString(result: String) {
                 Log.d("OTPSuccess", result)
@@ -224,7 +224,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 try {
                     val resultJSON = JSONObject(result)
                     val otpMessage = resultJSON.getString("message")
-                    otpInput!!.setText(otpMessage.substring(otpMessage.lastIndexOf(":") + 1))
+                    //otpInput!!.setText(otpMessage.substring(otpMessage.lastIndexOf(":") + 1))
                 } catch (e: JSONException) {
                     e.printStackTrace()
                 }
