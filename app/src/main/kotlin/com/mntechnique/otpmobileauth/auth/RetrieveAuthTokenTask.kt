@@ -33,7 +33,6 @@ class RetrieveAuthTokenTask(private val context: Context, private val callback: 
                     callback.onSuccessResponse(authToken!!)
                     am.invalidateAuthToken(account.type, authToken)
                 } catch (e: Exception) {
-                    Log.d("error", e.message)
                     callback.onErrorResponse(e.toString())
                 }
             }, null)
