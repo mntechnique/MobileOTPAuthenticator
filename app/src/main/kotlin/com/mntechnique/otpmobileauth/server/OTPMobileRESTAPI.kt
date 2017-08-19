@@ -24,9 +24,9 @@ import java.util.HashMap
 class OTPMobileRESTAPI (context: Context) {
     internal var mCtx = context
 
-    fun getOTP(mobileNo: String, serverUrl: String, getOTPEndpoint: String, callback: OTPMobileServerCallback) {
+    fun getOTP(mobileNo: String, clientID: String, serverUrl: String, getOTPEndpoint: String, callback: OTPMobileServerCallback) {
         val req = object : JsonObjectRequest(
-                serverUrl + getOTPEndpoint + "?mobile_no=" + mobileNo, null,
+                serverUrl + getOTPEndpoint + "?mobile_no=" + mobileNo + "&client_id=" + clientID, null,
                 object : Response.Listener<JSONObject> {
                     override fun onResponse(response: JSONObject) {
                         callback.onSuccessString(response.toString())

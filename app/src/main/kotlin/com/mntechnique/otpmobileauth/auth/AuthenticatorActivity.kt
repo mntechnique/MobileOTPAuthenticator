@@ -14,8 +14,6 @@ import android.view.View
 import android.view.ViewGroup
 
 import com.android.volley.VolleyError
-import com.stfalcon.smsverifycatcher.OnSmsCatchListener
-import com.stfalcon.smsverifycatcher.SmsVerifyCatcher
 
 import org.json.JSONException
 import org.json.JSONObject
@@ -27,12 +25,17 @@ import com.mntechnique.otpmobileauth.R
 import com.mntechnique.otpmobileauth.server.OTPMobileRESTAPI
 import com.mntechnique.otpmobileauth.server.OTPMobileServerCallback
 import android.Manifest.permission.READ_SMS
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
 import android.os.Build
+import android.support.v4.content.LocalBroadcastManager
 
 /**
  * A login screen that offers login via mobile/otp.
  */
-class AuthenticatorActivity : AccountAuthenticatorActivity() {
+
+class AuthenticatorActivity : AccountAuthenticatorActivity(){
 
     private val REQ_SIGNUP = 1
 
@@ -53,8 +56,6 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     internal var allowMultipleAccounts: Int = 1
 
     //SMS OTP Verify
-    internal lateinit var smsVerifyCatcher: SmsVerifyCatcher
-
     internal lateinit var serverUrl: String
     internal lateinit var getOTPEndpoint: String
     internal lateinit var authOTPEndpoint: String
@@ -62,21 +63,32 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
 
     internal lateinit var llProgress: LinearLayout
 
+    internal lateinit var senderNo: String
+
+    internal lateinit var receiver: BroadcastReceiver
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_authenticator)
         llProgress = findViewById<LinearLayout>(R.id.llProgress)
-        smsVerifyCatcher = SmsVerifyCatcher(this, OnSmsCatchListener<String> { message ->
-            val code = parseCode(message)//Parse verification code
-            //then you can send verification code to server
-            otpInput?.setText(code)//set code in edit text
-            otpInput?.isEnabled = true
-            authOtp()
-        })
 
         //set phone number filter if needed
-        smsVerifyCatcher.setPhoneNumberFilter(resources.getString(R.string.otpSenderNumber))
-        //smsVerifyCatcher.setFilter("regexp");
+        receiver = object: BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if(intent!!.action.equals("otp", ignoreCase = true)) {
+                    val sender = intent.getStringExtra("sender")
+                    if (sender.contains(context!!.resources.getString(R.string.otpSenderNumber))) {
+                        val message = intent.getStringExtra("message")
+                        val code = parseCode(message) //Parse verification code
+                        Log.d("Parsed OTP", code)
+                        otpInput?.setText(code)//set code in edit text
+                        authOtp()
+                    }
+                }
+            }
+        }
+
+        senderNo = resources.getString(R.string.otpSenderNumber)
 
         mAccountManager = AccountManager.get(baseContext)
 
@@ -135,6 +147,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 .setAction("Close") { finish() }.show()
     }
 
+
     /**
      * Callback received when a permissions request has been completed.
      */
@@ -147,24 +160,16 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
             REQUEST_READ_SMS -> {
                 // For SMS Read during login using OTP
                 if (grantResults.isNotEmpty() && grantResults.get(0) == PackageManager.PERMISSION_GRANTED) {
-                    // Handle action of grant
-                    smsVerifyCatcher.onStart()
-                    // For receiving otp sms
-                    smsVerifyCatcher.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
                     wireUpUI()
-
                 } else {
                     showPermissionSnackbarSMS()
                 }
             }
         }
-
     }
 
     override fun onStop() {
         super.onStop()
-        smsVerifyCatcher.onStop()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
@@ -215,7 +220,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         llProgress.visibility = View.VISIBLE
 
         val server = OTPMobileRESTAPI(baseContext)
-        server.getOTP(mobileInput!!.text.toString().replace(" ", ""),
+        server.getOTP(mobileInput!!.text.toString().replace(" ", ""), resources.getString(R.string.clientId),
                 serverUrl, getOTPEndpoint, object : OTPMobileServerCallback {
             override fun onSuccessString(result: String) {
                 Log.d("OTPSuccess", result)
@@ -224,7 +229,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 try {
                     val resultJSON = JSONObject(result)
                     val otpMessage = resultJSON.getString("message")
-                    otpInput!!.setText(otpMessage.substring(otpMessage.lastIndexOf(":") + 1))
+                    //otpInput!!.setText(otpMessage.substring(otpMessage.lastIndexOf(":") + 1))
                 } catch (e: JSONException) {
                     e.printStackTrace()
                 }
@@ -390,9 +395,9 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         finish()
     }
 
-    private fun parseCode(message: String): String {
-        //val p = Pattern.compile("\\b\\d{" + resources.getString(R.string.otpLen) + "}\\b")
-        val p = Pattern.compile("([A-Z0-9]){" + resources.getString(R.string.otpLen) + "}")
+    private fun parseCode(message: String?): String {
+        val p = Pattern.compile("\\b\\d{" + resources.getString(R.string.otpLen) + "}\\b")
+        //val p = Pattern.compile("([A-Z0-9]){" + resources.getString(R.string.otpLen) + "}")
         val m = p.matcher(message)
         var code = ""
         while (m.find()) {
@@ -457,5 +462,17 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 }
             }).show();
     }
+
+    override fun onPause() {
+        super.onPause()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+    }
+
+    override fun onResume() {
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("otp"))
+        super.onResume()
+    }
+
 }
 
