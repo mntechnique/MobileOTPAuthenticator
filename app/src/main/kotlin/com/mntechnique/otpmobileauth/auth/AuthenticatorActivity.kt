@@ -229,7 +229,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
                 try {
                     val resultJSON = JSONObject(result)
                     val otpMessage = resultJSON.getString("message")
-                    //otpInput!!.setText(otpMessage.substring(otpMessage.lastIndexOf(":") + 1))
+                    otpInput!!.setText(otpMessage.substring(otpMessage.lastIndexOf(":") + 1))
                 } catch (e: JSONException) {
                     e.printStackTrace()
                 }
