@@ -26,7 +26,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
 import android.os.Build
+import android.support.v4.content.LocalBroadcastManager
 import com.android.volley.VolleyError
+import org.jetbrains.anko.telephonyManager
 import org.jetbrains.anko.toast
 import java.io.IOException
 import java.net.URL
@@ -73,9 +75,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if(intent!!.action.equals("otp", ignoreCase = true)) {
                     val sender = intent.getStringExtra("sender")
+                    val message = intent.getStringExtra("message")
                     if (sender.contains(context!!.resources.getString(R.string.otpSenderNumber))) {
-                        val message = intent.getStringExtra("message")
-
                         //Parse verification code
                         val code = parseCode(message)
 
@@ -131,11 +132,15 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
 
     override fun onPause() {
         super.onPause()
-        unregisterReceiver(receiver)
+        LocalBroadcastManager
+                .getInstance(this)
+                .unregisterReceiver(receiver)
     }
 
     override fun onResume() {
-        registerReceiver(receiver, IntentFilter("otp"))
+        LocalBroadcastManager
+                .getInstance(this)
+                .registerReceiver(receiver, IntentFilter("otp"))
         super.onResume()
     }
 
