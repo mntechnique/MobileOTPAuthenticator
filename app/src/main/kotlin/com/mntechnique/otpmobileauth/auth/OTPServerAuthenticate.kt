@@ -5,6 +5,7 @@ import android.util.Log
 import com.github.scribejava.core.model.OAuth2AccessToken
 import com.github.scribejava.core.model.OAuthRequest
 import com.github.scribejava.core.model.Verb
+import org.json.JSONException
 
 import org.json.JSONObject
 
@@ -49,7 +50,12 @@ class OTPServerAuthenticate : ServerAuthenticate {
         val request = OAuthRequest(Verb.GET, serverURL + openIDEndpoint)
         AccountGeneral.oauth20Service!!.signRequest(oAuth2AccessToken, request)
         val response = AccountGeneral.oauth20Service!!.execute(request)
-        val openIDProfile = JSONObject(response!!.body)
+        var openIDProfile: JSONObject
+        try {
+            openIDProfile = JSONObject(response!!.body)
+        } catch (e: JSONException) {
+            openIDProfile = JSONObject()
+        }
 
         Log.d("OpenID JSON", openIDProfile.toString())
         return openIDProfile
