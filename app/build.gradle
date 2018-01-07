@@ -7,8 +7,8 @@ android {
     defaultConfig {
         minSdkVersion 15
         targetSdkVersion 26
-        versionCode 10
-        versionName "1.1.1"
+        versionCode 12
+        versionName "2.0.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -34,7 +34,6 @@ dependencies {
     compile 'com.android.volley:volley:1.1.0'
     testCompile 'junit:junit:4.12'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-
     // Anko
     compile "org.jetbrains.anko:anko:$anko_version"
     // Appcompat-v7 (only Anko Commons)
