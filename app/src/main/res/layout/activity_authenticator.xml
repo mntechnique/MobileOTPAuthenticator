@@ -1,5 +1,4 @@
 <android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -45,7 +44,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:hint="Mobile"
+                android:hint="@string/mobile"
                 android:inputType="number|phone"
                 android:maxLength="10"
                 android:maxLines="1" />
@@ -55,7 +54,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:hint="OTP"
+                android:hint="@string/otp"
                 android:inputType="number"
                 android:maxLength="6"
                 android:maxLines="1"
@@ -64,6 +63,7 @@
         </LinearLayout>
 
         <LinearLayout
+            style="?android:attr/buttonBarStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -71,22 +71,24 @@
             android:id="@+id/llEnterMobileOTP">
 
             <Button
+                style="?android:attr/buttonBarButtonStyle"
                 android:id="@+id/login"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp"
                 android:layout_weight="1"
-                android:text="Generate OTP" />
+                android:text="@string/generate_otp" />
 
             <Button
+                style="?android:attr/buttonBarButtonStyle"
                 android:id="@+id/submitOtp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp"
                 android:layout_weight="1"
-                android:text="Submit OTP"
+                android:text="@string/submit_otp"
                 android:textStyle="bold"
                 android:visibility="gone" />
         </LinearLayout>

@@ -13,9 +13,6 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 
-import com.android.volley.VolleyError
-
-import org.json.JSONException
 import org.json.JSONObject
 
 import java.util.regex.Pattern
@@ -29,29 +26,33 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
 import android.os.Build
-import android.support.v4.content.LocalBroadcastManager
+import com.android.volley.VolleyError
+import org.jetbrains.anko.toast
+import java.io.IOException
+import java.net.URL
 
 /**
  * A login screen that offers login via mobile/otp.
  */
 
-class AuthenticatorActivity : AccountAuthenticatorActivity(){
+class AuthenticatorActivity : AccountAuthenticatorActivity() {
 
-    private val REQ_SIGNUP = 1
+    val REQ_SIGNUP = 1
 
-    private val TAG = this.javaClass.simpleName
-    private lateinit var mAccountManager : AccountManager
-    private var mAuthTokenType: String? = null
+    val TAG = "AuthenticatorActivity"
+    lateinit var mAccountManager : AccountManager
+    var mAuthTokenType: String? = null
 
     val ARG_ACCOUNT_TYPE = "ACCOUNT_TYPE"
     val ARG_AUTH_TYPE = "AUTH_TYPE"
     val ARG_ACCOUNT_NAME = "ACCOUNT_NAME"
 
     // UI references.
-    private var mobileInput: EditText? = null
-    private var otpInput: EditText? = null
-    private var submitOtp: Button? = null
-    private var signIn: Button? = null
+    internal lateinit var llProgress: LinearLayout
+    var mobileInput: EditText? = null
+    var otpInput: EditText? = null
+    var submitOtp: Button? = null
+    var signIn: Button? = null
 
     internal var allowMultipleAccounts: Int = 1
 
@@ -60,17 +61,12 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
     internal lateinit var getOTPEndpoint: String
     internal lateinit var authOTPEndpoint: String
     internal lateinit var openIDEndpoint: String
-
-    internal lateinit var llProgress: LinearLayout
-
-    internal lateinit var senderNo: String
-
     internal lateinit var receiver: BroadcastReceiver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_authenticator)
-        llProgress = findViewById<LinearLayout>(R.id.llProgress)
+        llProgress = findViewById(R.id.llProgress)
 
         //set phone number filter if needed
         receiver = object: BroadcastReceiver() {
@@ -79,16 +75,18 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
                     val sender = intent.getStringExtra("sender")
                     if (sender.contains(context!!.resources.getString(R.string.otpSenderNumber))) {
                         val message = intent.getStringExtra("message")
-                        val code = parseCode(message) //Parse verification code
-                        Log.d("Parsed OTP", code)
-                        otpInput?.setText(code)//set code in edit text
+
+                        //Parse verification code
+                        val code = parseCode(message)
+
+                        //set code in edit text
+                        otpInput?.setText(code)
+
                         authOtp()
                     }
                 }
             }
         }
-
-        senderNo = resources.getString(R.string.otpSenderNumber)
 
         mAccountManager = AccountManager.get(baseContext)
 
@@ -99,10 +97,12 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         }
 
         val accounts = mAccountManager.getAccountsByType(intent.getStringExtra(ARG_ACCOUNT_TYPE))
+
         allowMultipleAccounts = Integer.parseInt(resources.getString(R.string.allowMultipleAccounts))
+
         var signInAgain: Boolean? = true
+
         if (intent.hasExtra(ARG_ACCOUNT_NAME)) {
-            Log.d("IntentExtras", intent.extras.toString())
             for (account in accounts) {
                 if (account.name == intent.getStringExtra(ARG_ACCOUNT_NAME)) {
                     wireUpUI()
@@ -129,24 +129,15 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         }
     }
 
-    private fun initOAuth20Service() : AccountGeneral{
-        val accountGeneral = AccountGeneral(
-                resources.getString(R.string.oauth2Scope),
-                resources.getString(R.string.clientId),
-                resources.getString(R.string.clientSecret),
-                resources.getString(R.string.serverURL),
-                resources.getString(R.string.redirectURI),
-                resources.getString(R.string.authEndpoint),
-                resources.getString(R.string.tokenEndpoint)
-        )
-        return accountGeneral
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(receiver)
     }
 
-    private fun singleAccountSnackbar() {
-        Snackbar.make(findViewById<View>(android.R.id.content), "You can only add one account", Snackbar.LENGTH_INDEFINITE)
-                .setAction("Close") { finish() }.show()
+    override fun onResume() {
+        registerReceiver(receiver, IntentFilter("otp"))
+        super.onResume()
     }
-
 
     /**
      * Callback received when a permissions request has been completed.
@@ -159,17 +150,13 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         when (requestCode) {
             REQUEST_READ_SMS -> {
                 // For SMS Read during login using OTP
-                if (grantResults.isNotEmpty() && grantResults.get(0) == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     wireUpUI()
                 } else {
                     showPermissionSnackbarSMS()
                 }
             }
         }
-    }
-
-    override fun onStop() {
-        super.onStop()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
@@ -182,7 +169,22 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         }
     }
 
-    private fun wireUpUI() {
+    fun initOAuth20Service(){
+        AccountGeneral (
+                resources.getString(R.string.oauth2Scope),
+                resources.getString(R.string.clientId),
+                resources.getString(R.string.clientSecret),
+                resources.getString(R.string.serverURL),
+                resources.getString(R.string.redirectURI)
+        )
+    }
+
+    fun singleAccountSnackbar() {
+        Snackbar.make(findViewById<View>(android.R.id.content), R.string.add_account_not_allowed, Snackbar.LENGTH_INDEFINITE)
+                .setAction(getString(R.string.close)) { finish() }.show()
+    }
+
+    fun wireUpUI() {
 
         if(!mayRequestSMS()){
             return
@@ -202,13 +204,28 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
             mAuthTokenType = AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS
         }
 
-        mobileInput = findViewById<EditText>(R.id.mobile)
-        otpInput = findViewById<EditText>(R.id.otp)
+        mobileInput = findViewById(R.id.mobile)
+        otpInput = findViewById(R.id.otp)
 
-        signIn = findViewById<Button>(R.id.login)
-        submitOtp = findViewById<Button>(R.id.submitOtp)
+        signIn = findViewById(R.id.login)
+        submitOtp = findViewById(R.id.submitOtp)
 
-        signIn!!.setOnClickListener { signIn() }
+        signIn!!.setOnClickListener {
+            val asyncTask = object : AsyncTask<Void, Void, Boolean>() {
+                override fun doInBackground(vararg params: Void?): Boolean{
+                    return checkConnection()
+                }
+                override fun onPostExecute(result: Boolean) {
+                    if (result){
+                        signIn()
+                    } else {
+                        toast(R.string.connection_error)
+                    }
+                }
+            }
+
+            asyncTask.execute()
+        }
 
         submitOtp!!.setOnClickListener { authOtp() }
 
@@ -220,31 +237,32 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         llProgress.visibility = View.VISIBLE
 
         val server = OTPMobileRESTAPI(baseContext)
-        server.getOTP(mobileInput!!.text.toString().replace(" ", ""), resources.getString(R.string.clientId),
+        server.getOTP(mobileInput!!.text.toString()
+                .replace(" ", "")
+                .replace("-", ""), resources.getString(R.string.clientId),
                 serverUrl, getOTPEndpoint, object : OTPMobileServerCallback {
             override fun onSuccessString(result: String) {
-                Log.d("OTPSuccess", result)
-                //hide progress
-                llProgress.visibility = View.GONE
-                try {
-                    val resultJSON = JSONObject(result)
-                    val otpMessage = resultJSON.getString("message")
-                    //otpInput!!.setText(otpMessage.substring(otpMessage.lastIndexOf(":") + 1))
-                } catch (e: JSONException) {
-                    e.printStackTrace()
-                }
+                Log.d(TAG, result)
 
+                // hide progress
+                llProgress.visibility = View.GONE
+
+                // disable mobile number input and generate otp button
                 mobileInput!!.isEnabled = false
                 signIn!!.isEnabled = false
                 signIn!!.visibility = View.GONE
+
+                // enable otp input and send otp button
                 otpInput!!.visibility = View.VISIBLE
+                submitOtp!!.visibility = View.VISIBLE
                 submitOtp!!.visibility = View.VISIBLE
             }
 
             override fun onErrorString(error: VolleyError) {
                 //show progress
                 llProgress.visibility = View.GONE
-                Toast.makeText(baseContext, "Something went wrong, please check mobile number", Toast.LENGTH_LONG).show()
+
+                toast(getString(R.string.please_check_mobile))
 
                 mobileInput!!.isEnabled = true
                 signIn!!.isEnabled = true
@@ -271,41 +289,32 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
                 object : OTPMobileServerCallback {
 
                     override fun onSuccessString(result: String) {
-                        Log.d("OTPAuthenticated", result)
 
                         submitOtp!!.isEnabled = false
                         otpInput!!.isEnabled = false
 
-                        object : AsyncTask<String, Void, Intent>() {
+                        val asyncTask = object : AsyncTask<String, Void, Intent>() {
                             override fun doInBackground(vararg params: String): Intent {
-                                Log.d("frappe", TAG + "> Started authenticating")
+                                Log.d(TAG, "> Started authenticating")
 
-                                val authtoken: String? = null
                                 val data = Bundle()
-                                try {
-                                    val bearerToken = JSONObject(result)
-                                    Log.d("access_token", bearerToken.getString("access_token"))
-                                    val openIDProfile = AccountGeneral.sServerAuthenticate.getOpenIDProfile(bearerToken.getString("access_token"),
-                                            serverUrl, openIDEndpoint)
+                                val bearerToken = JSONObject(result)
+                                val openIDProfile = AccountGeneral.sServerAuthenticate.getOpenIDProfile(bearerToken.getString("access_token"),
+                                        serverUrl, openIDEndpoint)
 
-                                    if (openIDProfile.has("email") && intent.hasExtra(ARG_ACCOUNT_NAME)) {
-                                        if (openIDProfile.getString("email") != intent.getStringExtra(ARG_ACCOUNT_NAME)) {
-                                            if (allowMultipleAccounts === 0 && accountExists()) {
-                                                throw AccountsException("Not allowed to add new account")
-                                            }
+                                if (openIDProfile.has("email") && intent.hasExtra(ARG_ACCOUNT_NAME)) {
+                                    if (openIDProfile.getString("email") != intent.getStringExtra(ARG_ACCOUNT_NAME)) {
+                                        if (allowMultipleAccounts === 0 && accountExists()) {
+                                            throw AccountsException(getString(R.string.add_account_not_allowed))
                                         }
                                     }
-
-                                    //JSONObject id_token = JWTUtils.decoded(bearerToken.get("id_token").toString());
-                                    data.putString(AccountManager.KEY_ACCOUNT_NAME, openIDProfile.get("email").toString())
-                                    data.putString(AccountManager.KEY_ACCOUNT_TYPE, accountType)
-                                    data.putString(AccountManager.KEY_AUTHTOKEN, result)
-                                    data.putString(PARAM_USER_PASS, resources.getString(R.string.clientSecret))
-                                    data.putString("KEY_OPENID_PROFILE", openIDProfile.toString())
-                                } catch (e: Exception) {
-                                    Log.d("Error is ", e.toString())
-                                    data.putString(KEY_ERROR_MESSAGE, e.message)
                                 }
+
+                                data.putString(AccountManager.KEY_ACCOUNT_NAME, openIDProfile.get("email").toString())
+                                data.putString(AccountManager.KEY_ACCOUNT_TYPE, accountType)
+                                data.putString(AccountManager.KEY_AUTHTOKEN, result)
+                                data.putString(PARAM_USER_PASS, resources.getString(R.string.clientSecret))
+                                data.putString("KEY_OPENID_PROFILE", openIDProfile.toString())
 
                                 val res = Intent()
                                 res.putExtras(data)
@@ -323,11 +332,13 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
                                     finishLogin(intent)
                                 }
                             }
-                        }.execute()
+                        }
+
+                        asyncTask.execute()
                     }
 
                     override fun onErrorString(error: VolleyError) {
-                        Toast.makeText(baseContext, "Please check OTP or tap back to try with different number", Toast.LENGTH_LONG).show()
+                        toast(getString(R.string.check_number_or_otp))
                         signIn!!.isEnabled = true
                         submitOtp!!.isEnabled = true
                         otpInput!!.isEnabled = true
@@ -336,8 +347,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
                 })
     }
 
-    private fun finishLogin(intent: Intent) {
-        Log.d("frappe", TAG + "> finishLogin")
+    fun finishLogin(intent: Intent) {
+        Log.d(TAG, "> finishLogin")
 
         val accountName = intent.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
         val accountPassword = intent.getStringExtra(PARAM_USER_PASS)
@@ -347,7 +358,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         mAccountManager = AccountManager.get(baseContext)
 
         if (getIntent().getBooleanExtra(ARG_IS_ADDING_NEW_ACCOUNT, true)) {
-            Log.d("frappe", TAG + "> finishLogin > addAccountExplicitly")
+            Log.d(TAG,"> finishLogin > addAccountExplicitly")
             authtoken = intent.getStringExtra(AccountManager.KEY_AUTHTOKEN)
             val authtokenType = mAuthTokenType
 
@@ -362,31 +373,19 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
             setAccountAuthenticatorResult(getIntent().extras)
             setResult(RESULT_OK, getIntent())
 
-            var bearerToken: JSONObject
-            try {
-                bearerToken = JSONObject(authtoken)
-                val tokenExpiryTime = System.currentTimeMillis() / 1000 + java.lang.Long.parseLong(resources.getString(R.string.expiresIn))
-                mAccountManager.setUserData(account, "authToken", authtoken)
-                mAccountManager.setUserData(account, "refreshToken", bearerToken.getString("refresh_token"))
-                mAccountManager.setUserData(account, "accessToken", bearerToken.getString("access_token"))
-                mAccountManager.setUserData(account, "serverURL", resources.getString(R.string.serverURL))
-                mAccountManager.setUserData(account, "redirectURI", resources.getString(R.string.redirectURI))
-                mAccountManager.setUserData(account, "clientId", resources.getString(R.string.clientId))
-                mAccountManager.setUserData(account, "clientSecret", resources.getString(R.string.clientSecret))
-                mAccountManager.setUserData(account, "oauth2Scope", resources.getString(R.string.oauth2Scope))
-                mAccountManager.setUserData(account, "authEndpoint", resources.getString(R.string.authEndpoint))
-                mAccountManager.setUserData(account, "tokenEndpoint", resources.getString(R.string.tokenEndpoint))
-                mAccountManager.setUserData(account, "openIDEndpoint", resources.getString(R.string.openIDEndpoint))
-                mAccountManager.setUserData(account, "expiresIn", resources.getString(R.string.expiresIn))
-                mAccountManager.setUserData(account, "tokenExpiryTime", tokenExpiryTime.toString())
-                mAccountManager.setUserData(account, "openIDProfile", intent.getStringExtra("KEY_OPENID_PROFILE"))
-            } catch (e: JSONException) {
-                e.printStackTrace()
-            }
-
-            Log.d("frappe", TAG + "> finishLogin > setPassword new " + authtoken)
+            val bearerToken = JSONObject(authtoken)
+            mAccountManager.setUserData(account, "authToken", authtoken)
+            mAccountManager.setUserData(account, "refreshToken", bearerToken.getString("refresh_token"))
+            mAccountManager.setUserData(account, "accessToken", bearerToken.getString("access_token"))
+            mAccountManager.setUserData(account, "serverURL", resources.getString(R.string.serverURL))
+            mAccountManager.setUserData(account, "redirectURI", resources.getString(R.string.redirectURI))
+            mAccountManager.setUserData(account, "clientId", resources.getString(R.string.clientId))
+            mAccountManager.setUserData(account, "clientSecret", resources.getString(R.string.clientSecret))
+            mAccountManager.setUserData(account, "oauth2Scope", resources.getString(R.string.oauth2Scope))
+            mAccountManager.setUserData(account, "openIDEndpoint", resources.getString(R.string.openIDEndpoint))
+            mAccountManager.setUserData(account, "openIDProfile", intent.getStringExtra("KEY_OPENID_PROFILE"))
         } else {
-            Log.d("frappe", TAG + "> finishLogin > setPassword no new login" + authtoken)
+            // No new login
             mAccountManager.setPassword(account, accountPassword)
         }
 
@@ -395,7 +394,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         finish()
     }
 
-    private fun parseCode(message: String?): String {
+    fun parseCode(message: String?): String {
         val p = Pattern.compile("\\b\\d{" + resources.getString(R.string.otpLen) + "}\\b")
         //val p = Pattern.compile("([A-Z0-9]){" + resources.getString(R.string.otpLen) + "}")
         val m = p.matcher(message)
@@ -407,24 +406,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         return code
     }
 
-    companion object {
-
-        val ARG_ACCOUNT_TYPE = "ACCOUNT_TYPE"
-        val ARG_AUTH_TYPE = "AUTH_TYPE"
-        val ARG_ACCOUNT_NAME = "ACCOUNT_NAME"
-        val ARG_IS_ADDING_NEW_ACCOUNT = "IS_ADDING_ACCOUNT"
-
-        val KEY_ERROR_MESSAGE = "ERR_MSG"
-
-        val PARAM_USER_PASS = "USER_PASS"
-
-        /**
-         * Id to identity READ_CONTACTS permission request.
-         */
-        private val REQUEST_READ_SMS = 0
-    }
-
-    internal fun accountExists():Boolean {
+    fun accountExists():Boolean {
         val accounts = mAccountManager.getAccountsByType(intent.getStringExtra(ARG_ACCOUNT_TYPE))
         if (accounts.isNotEmpty()){
             return true
@@ -432,7 +414,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
         return false
     }
 
-    internal fun mayRequestSMS(): Boolean {
+    fun mayRequestSMS(): Boolean {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return true
@@ -454,25 +436,39 @@ class AuthenticatorActivity : AccountAuthenticatorActivity(){
     fun showPermissionSnackbarSMS(){
         llProgress.visibility = View.VISIBLE
         Snackbar.make(findViewById<ViewGroup>(android.R.id.content), "App needs Read SMS permission", Snackbar.LENGTH_INDEFINITE)
-            .setAction("OK", object: View.OnClickListener {
-                override fun onClick(v: View) {
+                .setAction("OK") {
                     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                        requestPermissions(arrayOf(READ_SMS), REQUEST_READ_SMS);
+                        requestPermissions(arrayOf(READ_SMS), REQUEST_READ_SMS)
                     }
-                }
-            }).show();
+                }.show()
     }
 
-    override fun onPause() {
-        super.onPause()
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+    fun checkConnection(): Boolean {
+        val connectUrl = URL(serverUrl)
+        val connection = connectUrl.openConnection()
+        connection.connectTimeout = 10000
+        try {
+            connection.connect()
+            return true
+        } catch (e: IOException){
+            return false
+        }
     }
 
-    override fun onResume() {
-        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("otp"))
-        super.onResume()
-    }
+    companion object {
 
+        val ARG_ACCOUNT_TYPE = "ACCOUNT_TYPE"
+        val ARG_AUTH_TYPE = "AUTH_TYPE"
+        val ARG_ACCOUNT_NAME = "ACCOUNT_NAME"
+        val ARG_IS_ADDING_NEW_ACCOUNT = "IS_ADDING_ACCOUNT"
+
+        val KEY_ERROR_MESSAGE = "ERR_MSG"
+
+        val PARAM_USER_PASS = "USER_PASS"
+
+        /**
+         * Id to identity READ_CONTACTS permission request.
+         */
+        private val REQUEST_READ_SMS = 0
+    }
 }
-

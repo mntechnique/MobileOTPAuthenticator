@@ -8,8 +8,15 @@ import org.json.JSONObject
  * Time: 2:35 AM
  */
 interface ServerAuthenticate {
-    @Throws(Exception::class)
-    fun userSignIn(authMethod: JSONObject, CLIENT_ID: String, REDIRECT_URI: String): String
+    fun userSignIn(
+            authMethod: JSONObject,
+            CLIENT_ID: String,
+            REDIRECT_URI: String
+    ): String
 
-    fun getOpenIDProfile(accessToken: String, serverURL: String, openIDEndpoint: String): JSONObject
+    fun getOpenIDProfile(
+            accessToken: String,
+            serverURL: String,
+            openIDEndpoint: String
+    ): JSONObject
 }

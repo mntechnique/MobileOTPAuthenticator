@@ -20,8 +20,7 @@
         <activity android:name="com.mntechnique.otpmobileauth.auth.AuthenticatorActivity"
             android:exported="true" android:screenOrientation="portrait">
         </activity>
-
-        <service android:name="com.mntechnique.otpmobileauth.auth.FrappeAuthenticatorService">
+        <service android:name="com.mntechnique.otpmobileauth.auth.OTPAuthenticatorService">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>
@@ -30,13 +29,6 @@
                 android:name="android.accounts.AccountAuthenticator"
                 android:resource="@xml/authenticator" />
         </service>
-
-        <receiver android:name="com.mntechnique.otpmobileauth.auth.IncomingSMS">
-            <intent-filter>
-                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
-            </intent-filter>
-        </receiver>
-
     </application>
 
 </manifest>
