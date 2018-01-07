@@ -17,12 +17,11 @@ import android.accounts.AccountManager.KEY_BOOLEAN_RESULT
  * Date: 19/03/13
  * Time: 18:58
  */
-class FrappeAuthenticator(private val mContext: Context) : AbstractAccountAuthenticator(mContext) {
+class OTPAuthenticator(private val mContext: Context) : AbstractAccountAuthenticator(mContext) {
 
     private val TAG = "OAuth2Authenticator"
     internal var authToken: String? = null
 
-    @Throws(NetworkErrorException::class)
     override fun addAccount(response: AccountAuthenticatorResponse,
                             accountType: String,
                             authTokenType: String?,
@@ -41,7 +40,6 @@ class FrappeAuthenticator(private val mContext: Context) : AbstractAccountAuthen
         return bundle
     }
 
-    @Throws(NetworkErrorException::class)
     override fun getAuthToken(response: AccountAuthenticatorResponse, account: Account, authTokenType: String, options: Bundle): Bundle {
         Log.d(TAG, "> getAuthToken")
 
@@ -62,27 +60,16 @@ class FrappeAuthenticator(private val mContext: Context) : AbstractAccountAuthen
         val refreshToken = am.getUserData(account, "refreshToken")
 
         val serverURL = am.getUserData(account, "serverURL")
-        val CLIENT_ID = am.getUserData(account, "clientId")
-        val REDIRECT_URI = am.getUserData(account, "redirectURI")
-        val authEndpoint = am.getUserData(account, "authEndpoint")
-        val tokenEndpoint = am.getUserData(account, "tokenEndpoint")
+        val clientId = am.getUserData(account, "clientId")
+        val redirectURI = am.getUserData(account, "redirectURI")
         val openIDEndpoint = am.getUserData(account, "openIDEndpoint")
         val clientSecret = am.getUserData(account, "clientSecret")
         val oauth2Scope = am.getUserData(account, "oauth2Scope")
-        val expiresIn = am.getUserData(account, "expiresIn")
-        val tokenExpiryTime = am.getUserData(account, "tokenExpiryTime")
-
-        Log.d("OAuth2Authenticator", TAG + "> at isnull - " + accessToken)
-        Log.d("OAuth2Authenticator", TAG + "> expiryTime - " + tokenExpiryTime)
 
         //Initiate Scribe Java Auth Service
-        val accountGeneral = AccountGeneral(
-                oauth2Scope, CLIENT_ID, clientSecret, serverURL,
-                REDIRECT_URI, authEndpoint, tokenEndpoint
-        )
+        AccountGeneral(oauth2Scope, clientId, clientSecret, serverURL, redirectURI)
 
         val openIDProfile = AccountGeneral.sServerAuthenticate.getOpenIDProfile(accessToken, serverURL, openIDEndpoint)
-        Log.d("OAuth2Authenticator", accountGeneral.toString())
 
         // Lets give another try to authenticate the user
         if (TextUtils.isEmpty(accessToken) || openIDProfile.length() == 0) {
@@ -91,7 +78,7 @@ class FrappeAuthenticator(private val mContext: Context) : AbstractAccountAuthen
                 val authMethod = JSONObject()
                 authMethod.put("type", "refresh")
                 authMethod.put("refresh_token", refreshToken)
-                authToken = AccountGeneral.sServerAuthenticate.userSignIn(authMethod, CLIENT_ID, REDIRECT_URI)
+                authToken = AccountGeneral.sServerAuthenticate.userSignIn(authMethod, clientId, redirectURI)
                 val bearerToken = JSONObject(authToken)
                 am.setAuthToken(account, AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS, authToken)
                 am.setUserData(account, "authtoken", authToken)
@@ -115,40 +102,45 @@ class FrappeAuthenticator(private val mContext: Context) : AbstractAccountAuthen
         // If we get here, then we couldn't access the user's password - so we
         // need to re-prompt them for their credentials. We do that by creating
         // an intent to display our AuthenticatorActivity.
-        val result = getBundle("new_intent", AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS, account, response)
-        return result
+
+        return getBundle("new_intent", AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS, account, response)
 
     }
 
     fun getBundle(bundleType: String, authTokenType: String, account: Account, response: AccountAuthenticatorResponse): Bundle {
         // bundleType - invalid_token_type, new_intent, valid
         val result = Bundle()
-        if (bundleType === "invalid_token_type") {
-            result.putString(AccountManager.KEY_ERROR_MESSAGE, "invalid authTokenType")
-        } else if (bundleType === "new_intent") {
-            val intent = Intent(mContext, AuthenticatorActivity::class.java)
-            intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response)
-            intent.putExtra(AuthenticatorActivity.ARG_ACCOUNT_TYPE, account.type)
-            intent.putExtra(AuthenticatorActivity.ARG_AUTH_TYPE, authTokenType)
-            intent.putExtra(AuthenticatorActivity.ARG_ACCOUNT_NAME, account.name)
-            result.putParcelable(AccountManager.KEY_INTENT, intent)
-        } else if (bundleType === "valid") {
-            result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
-            result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type)
+        when(bundleType){
+            "invalid_token_type" -> {
+                result.putString(AccountManager.KEY_ERROR_MESSAGE, "invalid authTokenType")
+            }
+
+            "new_intent" -> {
+                val intent = Intent(mContext, AuthenticatorActivity::class.java)
+                intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response)
+                intent.putExtra(AuthenticatorActivity.ARG_ACCOUNT_TYPE, account.type)
+                intent.putExtra(AuthenticatorActivity.ARG_AUTH_TYPE, authTokenType)
+                intent.putExtra(AuthenticatorActivity.ARG_ACCOUNT_NAME, account.name)
+                result.putParcelable(AccountManager.KEY_INTENT, intent)
+            }
+
+            "valid" -> {
+                result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
+                result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type)
+            }
         }
+
         return result
     }
 
     override fun getAuthTokenLabel(authTokenType: String): String {
-        if (AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS == authTokenType)
-            return AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS_LABEL
-        else if (AccountGeneral.AUTHTOKEN_TYPE_READ_ONLY == authTokenType)
-            return AccountGeneral.AUTHTOKEN_TYPE_READ_ONLY_LABEL
-        else
-            return authTokenType + " (Label)"
+        when (authTokenType) {
+            AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS -> return AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS_LABEL
+            AccountGeneral.AUTHTOKEN_TYPE_READ_ONLY -> return AccountGeneral.AUTHTOKEN_TYPE_READ_ONLY_LABEL
+            else -> return authTokenType + " (Label)"
+        }
     }
 
-    @Throws(NetworkErrorException::class)
     override fun hasFeatures(response: AccountAuthenticatorResponse, account: Account, features: Array<String>): Bundle {
         val result = Bundle()
         result.putBoolean(KEY_BOOLEAN_RESULT, false)
@@ -159,12 +151,10 @@ class FrappeAuthenticator(private val mContext: Context) : AbstractAccountAuthen
         return null
     }
 
-    @Throws(NetworkErrorException::class)
     override fun confirmCredentials(response: AccountAuthenticatorResponse, account: Account, options: Bundle): Bundle? {
         return null
     }
 
-    @Throws(NetworkErrorException::class)
     override fun updateCredentials(response: AccountAuthenticatorResponse, account: Account, authTokenType: String, options: Bundle): Bundle? {
         return null
     }

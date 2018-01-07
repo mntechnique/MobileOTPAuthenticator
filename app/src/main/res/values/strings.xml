@@ -1,20 +1,30 @@
 <resources>
-    <string name="clientId">f9b89210ae</string>
     <string name="app_name">OAuth2Authenticator</string>
-    <string name="authEndpoint">/api/method/frappe.integrations.oauth2.authorize</string>
-    <string name="tokenEndpoint">/api/method/frappe.integrations.oauth2.get_token</string>
-    <string name="openIDEndpoint">/api/method/frappe.integrations.oauth2.openid_profile</string>
-    <string name="redirectURI">oauth://oauth2authenticator</string>
-    <string name="serverURL">http://test.mntechnique.com</string>
-    <string name="oauth2Scope">openid all</string>
-    <string name="clientSecret">2fa756a823</string>
+
+    <!-- Translate Strings -->
+    <string name="please_add_account">Please add account</string>
+    <string name="please_check_mobile">Something went wrong, please check mobile number</string>
+    <string name="add_account_not_allowed">Not allowed to add new account</string>
+    <string name="check_number_or_otp">Please check OTP or tap back to try with different number</string>
+    <string name="close">Close</string>
+    <string name="connection_error">Connection Error</string>
+
+    <!--OAuth 2.0 and OTP-->
     <string name="accountType">${packageName}</string>
     <string name="package_name">${packageName}</string>
-    <string name="expiresIn">3300</string>
+    <string name="serverURL">https://default.mntechnique.com</string>
+    <string name="redirectURI">oauth://oauth2authenticator</string>
+    <string name="clientId">clientID</string>
+    <string name="clientSecret">clientSecret</string>
+    <string name="oauth2Scope">all</string>
+    <string name="openIDEndpoint">/api/method/frappe.integrations.oauth2.openid_profile</string>
     <string name="allowMultipleAccounts">1</string>
     <string name="otpSenderNumber">MNTECH</string>
     <string name="getOTPEndpoint">/api/method/mnt_mobile_otp.api.get_otp</string>
     <string name="authOTPEndpoint">/api/method/mnt_mobile_otp.api.authenticate_otp</string>
     <string name="otpLen">6</string>
-    <string name="please_add_account">Please add account</string>
+    <string name="mobile">Mobile</string>
+    <string name="otp">OTP</string>
+    <string name="generate_otp">Generate OTP</string>
+    <string name="submit_otp">Submit OTP</string>
 </resources>

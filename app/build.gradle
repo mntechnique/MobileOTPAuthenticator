@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.0"
+    buildToolsVersion "26.0.2"
     defaultConfig {
         minSdkVersion 15
         targetSdkVersion 26
@@ -30,11 +30,17 @@ dependencies {
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.android.support:design:26.+'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
-    compile 'com.github.scribejava:scribejava-apis:4.1.2'
-    compile 'com.android.volley:volley:1.0.0'
+    compile 'com.github.scribejava:scribejava-apis:5.0.0'
+    compile 'com.android.volley:volley:1.1.0'
     testCompile 'junit:junit:4.12'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+
+    // Anko
+    compile "org.jetbrains.anko:anko:$anko_version"
+    // Appcompat-v7 (only Anko Commons)
+    compile "org.jetbrains.anko:anko-appcompat-v7-commons:$anko_version"
 }
+
 repositories {
     mavenCentral()
 }

@@ -10,10 +10,10 @@ import android.os.IBinder
  * Date: 19/03/13
  * Time: 19:10
  */
-class FrappeAuthenticatorService : Service() {
+class OTPAuthenticatorService : Service() {
     override fun onBind(intent: Intent): IBinder? {
 
-        val authenticator = FrappeAuthenticator(this)
+        val authenticator = OTPAuthenticator(this)
         return authenticator.iBinder
     }
 }

@@ -2,12 +2,8 @@ package com.mntechnique.otpmobileauth.auth
 
 import android.accounts.Account
 import android.accounts.AccountManager
-import android.accounts.AccountManagerCallback
-import android.accounts.AccountManagerFuture
 import android.content.Context
 import android.os.AsyncTask
-import android.os.Bundle
-import android.util.Log
 
 import com.mntechnique.otpmobileauth.R
 
@@ -17,7 +13,6 @@ import com.mntechnique.otpmobileauth.R
 
 class RetrieveAuthTokenTask(private val context: Context, private val callback: AuthReqCallback) : AsyncTask<String, Void, Void>() {
 
-    private val exception: Exception? = null
     private var authToken: String? = null
 
     override fun doInBackground(vararg urls: String): Void? {
@@ -36,8 +31,6 @@ class RetrieveAuthTokenTask(private val context: Context, private val callback: 
                     callback.onErrorResponse(e.toString())
                 }
             }, null)
-        } else {
-            Log.d("Accounts", "NOT 1 account found!")
         }
         return null
     }
