@@ -22,10 +22,11 @@ class SMSBroadcastReceiver : BroadcastReceiver() {
         var bundle = intent.extras
         if (bundle != null) {
 
-            var pdus:Array<Object> = bundle.get("pdus") as Array<Object>
+            var pdus:Array<Any> = bundle.get("pdus") as Array<Any>
 
             for (i in 0..pdus.size -1) {
-                var message:SmsMessage? = null
+                var message:SmsMessage? = SmsMessage.createFromPdu(pdus[i] as ByteArray)
+
                 when(context.telephonyManager.phoneType) {
                     TelephonyManager.PHONE_TYPE_GSM -> {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -39,11 +40,11 @@ class SMSBroadcastReceiver : BroadcastReceiver() {
                     }
                 }
 
-                var senderNum = message?.displayOriginatingAddress
-                var messageBody = message?.displayMessageBody
+                var senderNum = message?.originatingAddress
+                var messageBody = message?.messageBody
 
-                Log.d("Number", message?.originatingAddress)
-                Log.d("SMS", message?.messageBody)
+                Log.d("Number", senderNum)
+                Log.d("SMS", messageBody)
 
                 var smsIntent = Intent("otp")
                 smsIntent.putExtra("message", messageBody)
