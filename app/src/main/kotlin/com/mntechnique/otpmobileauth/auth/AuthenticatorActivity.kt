@@ -30,6 +30,7 @@ import android.support.v4.content.LocalBroadcastManager
 import com.android.volley.VolleyError
 import org.jetbrains.anko.telephonyManager
 import org.jetbrains.anko.toast
+import org.json.JSONException
 import java.io.IOException
 import java.net.URL
 
@@ -248,9 +249,16 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 serverUrl, getOTPEndpoint, object : OTPMobileServerCallback {
             override fun onSuccessString(result: String) {
                 Log.d(TAG, result)
-
+                var otp: String
+                try {
+                    otp = JSONObject(result).getString("message").split(":")[1]!!
+                } catch (e:JSONException){
+                    otp = "ERROR"
+                }
                 // hide progress
                 llProgress.visibility = View.GONE
+
+                otpInput!!.setText(otp)
 
                 // disable mobile number input and generate otp button
                 mobileInput!!.isEnabled = false
