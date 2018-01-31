@@ -456,7 +456,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     }
 
     fun showPermissionSnackbarSMS(){
-        llProgress.visibility = View.VISIBLE
+        // llProgress.visibility = View.VISIBLE
         Snackbar.make(findViewById<ViewGroup>(android.R.id.content), "App needs Read SMS permission", Snackbar.LENGTH_INDEFINITE)
                 .setAction("OK") {
                     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
