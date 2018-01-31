@@ -28,7 +28,6 @@ import android.content.IntentFilter
 import android.os.Build
 import android.support.v4.content.LocalBroadcastManager
 import com.android.volley.VolleyError
-import org.jetbrains.anko.telephonyManager
 import org.jetbrains.anko.toast
 import org.json.JSONException
 import java.io.IOException
