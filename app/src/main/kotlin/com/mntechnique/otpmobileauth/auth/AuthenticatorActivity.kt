@@ -64,7 +64,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
     internal lateinit var getOTPEndpoint: String
     internal lateinit var authOTPEndpoint: String
     internal lateinit var openIDEndpoint: String
-    internal lateinit var receiver: BroadcastReceiver
+    var receiver: BroadcastReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
