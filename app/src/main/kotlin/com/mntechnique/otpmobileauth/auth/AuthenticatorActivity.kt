@@ -167,8 +167,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     wireUpUI()
                 } else {
-                    showPermissionSnackbarSMS()
                     wireUpUI()
+                    showPermissionSnackbarSMS()
                 }
             }
         }
