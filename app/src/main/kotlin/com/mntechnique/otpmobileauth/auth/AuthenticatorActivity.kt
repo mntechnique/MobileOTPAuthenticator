@@ -164,10 +164,8 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         when (requestCode) {
             REQUEST_READ_SMS -> {
                 // For SMS Read during login using OTP
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    wireUpUI()
-                } else {
-                    wireUpUI()
+                wireUpUI()
+                if (grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     showPermissionSnackbarSMS()
                 }
             }
