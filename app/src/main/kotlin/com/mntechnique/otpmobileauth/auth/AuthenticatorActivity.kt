@@ -72,19 +72,22 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
         llProgress = findViewById(R.id.llProgress)
 
         //set phone number filter if needed
-        receiver = object: BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if(intent!!.action.equals("otp", ignoreCase = true)) {
-                    val sender = intent.getStringExtra("sender")
-                    val message = intent.getStringExtra("message")
-                    if (sender.contains(context!!.resources.getString(R.string.otpSenderNumber))) {
-                        //Parse verification code
-                        val code = parseCode(message)
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M &&
+                checkSelfPermission(READ_SMS) == PackageManager.PERMISSION_GRANTED){
+            receiver = object: BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    if(intent!!.action.equals("otp", ignoreCase = true)) {
+                        val sender = intent.getStringExtra("sender")
+                        val message = intent.getStringExtra("message")
+                        if (sender.contains(context!!.resources.getString(R.string.otpSenderNumber))) {
+                            //Parse verification code
+                            val code = parseCode(message)
 
-                        //set code in edit text
-                        otpInput?.setText(code)
+                            //set code in edit text
+                            otpInput?.setText(code)
 
-                        authOtp()
+                            authOtp()
+                        }
                     }
                 }
             }
@@ -133,15 +136,21 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
 
     override fun onPause() {
         super.onPause()
-        LocalBroadcastManager
-                .getInstance(this)
-                .unregisterReceiver(receiver)
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M &&
+                checkSelfPermission(READ_SMS) == PackageManager.PERMISSION_GRANTED){
+            LocalBroadcastManager
+                    .getInstance(this)
+                    .unregisterReceiver(receiver)
+        }
     }
 
     override fun onResume() {
-        LocalBroadcastManager
-                .getInstance(this)
-                .registerReceiver(receiver, IntentFilter("otp"))
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M &&
+                checkSelfPermission(READ_SMS) == PackageManager.PERMISSION_GRANTED) {
+                LocalBroadcastManager
+                        .getInstance(this)
+                        .registerReceiver(receiver, IntentFilter("otp"))
+        }
         super.onResume()
     }
 
@@ -160,6 +169,7 @@ class AuthenticatorActivity : AccountAuthenticatorActivity() {
                     wireUpUI()
                 } else {
                     showPermissionSnackbarSMS()
+                    wireUpUI()
                 }
             }
         }
