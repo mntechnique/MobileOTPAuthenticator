@@ -22,6 +22,7 @@
     <string name="otpSenderNumber">MNTECH</string>
     <string name="getOTPEndpoint">/api/method/mnt_mobile_otp.api.get_otp</string>
     <string name="authOTPEndpoint">/api/method/mnt_mobile_otp.api.authenticate_otp</string>
+    <string name="revokeTokenEndpoint">/api/method/frappe.integrations.oauth2.revoke_token</string>
     <string name="otpLen">6</string>
     <string name="mobile">Mobile</string>
     <string name="otp">OTP</string>

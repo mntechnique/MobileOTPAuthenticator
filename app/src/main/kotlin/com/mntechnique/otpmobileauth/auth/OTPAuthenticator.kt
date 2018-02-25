@@ -10,6 +10,14 @@ import android.util.Log
 import org.json.JSONObject
 
 import android.accounts.AccountManager.KEY_BOOLEAN_RESULT
+import com.android.volley.Request
+import com.android.volley.VolleyError
+import com.android.volley.Request.Method.POST
+import com.android.volley.Response
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import com.mntechnique.otpmobileauth.R
+
 
 /**
  * Created with IntelliJ IDEA.
@@ -79,6 +87,30 @@ class OTPAuthenticator(private val mContext: Context) : AbstractAccountAuthentic
                 authMethod.put("type", "refresh")
                 authMethod.put("refresh_token", refreshToken)
                 authToken = AccountGeneral.sServerAuthenticate.userSignIn(authMethod, clientId, redirectURI)
+                if (accessToken.isNotEmpty()){
+                    var queue = Volley.newRequestQueue(mContext)
+                    val revokeTokenEndpoint = mContext.getString(R.string.revokeTokenEndpoint)
+                    val url = serverURL + revokeTokenEndpoint
+                    val postRequest = object : StringRequest(Request.Method.POST, url,
+                            object : Response.Listener<String> {
+                                override fun onResponse(response: String?) {
+                                    Log.d("TokenRevoked", response.orEmpty())
+                                }
+                            },
+                            object : Response.ErrorListener {
+                                override fun onErrorResponse(error: VolleyError) {
+                                    Log.e("Error.Response", error.message.orEmpty(), error)
+                                }
+                            }
+                    ) {
+                        override fun getParams(): Map<String, String> {
+                            val params = HashMap<String, String>()
+                            params["token"] = accessToken
+                            return params
+                        }
+                    }
+                    queue.add(postRequest)
+                }
                 val bearerToken = JSONObject(authToken)
                 am.setAuthToken(account, AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS, authToken)
                 am.setUserData(account, "authtoken", authToken)
